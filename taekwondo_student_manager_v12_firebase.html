@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>용인대현대태권도 관원 차량 관리 v12 Firebase1</title>
+<style>
+:root{
+  --bg:#f3f6fb;--card:#fff;--ink:#172033;--muted:#718096;--line:#dde5f0;
+  --blue:#174ea6;--blue2:#0b3d91;--soft:#eef5ff;--green:#16803c;--red:#d93025;
+  --yellow:#fff7e6;--shadow:0 10px 28px rgba(25,45,80,.08);--radius:18px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans KR",Arial,sans-serif}
+button,input,select,textarea{font:inherit}
+button{border:0;border-radius:12px;padding:10px 14px;background:var(--blue);color:white;font-weight:800;cursor:pointer}
+button:hover{background:var(--blue2)}
+button.secondary{background:#edf1f7;color:#24344d}
+button.secondary:hover{background:#e1e7f0}
+button.danger{background:#fff0f0;color:var(--red);border:1px solid #ffd3d3}
+button.small{padding:6px 9px;border-radius:9px;font-size:13px}
+input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:#fff;outline:none}
+input:focus,select:focus,textarea:focus{border-color:#8ab4f8;box-shadow:0 0 0 3px rgba(23,78,166,.08)}
+.app{max-width:1500px;margin:0 auto;padding:22px}
+.header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px}
+.title h1{margin:0;font-size:28px;letter-spacing:-.5px}.title p{margin:6px 0 0;color:var(--muted)}
+.header-actions{display:flex;gap:10px;align-items:center}.date-box{width:180px}
+.layout{display:grid;grid-template-columns:360px 1fr;gap:18px}.panel{background:var(--card);border:1px solid rgba(221,229,240,.8);border-radius:var(--radius);box-shadow:var(--shadow)}
+.panel-head{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:10px}.panel-head h2{font-size:18px;margin:0}.panel-body{padding:16px 18px}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}.stat{background:linear-gradient(180deg,#fff,#f8fbff);border:1px solid var(--line);border-radius:16px;padding:14px}.stat .label{font-size:13px;color:var(--muted);font-weight:700}.stat .num{font-size:28px;font-weight:900;margin-top:5px}
+.side-stack,.main-stack{display:flex;flex-direction:column;gap:14px}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field{margin-bottom:10px}.field label{display:block;margin-bottom:6px;font-size:13px;color:#40506a;font-weight:800}
+.search-row{display:flex;gap:8px;margin-bottom:10px}.list{display:flex;flex-direction:column;gap:8px;max-height:360px;overflow:auto;padding-right:3px}
+.student-item{border:1px solid var(--line);border-radius:14px;padding:11px 12px;background:#fff;cursor:pointer}.student-item:hover{background:var(--soft);border-color:#b8d1ff}.student-name{font-weight:900}.student-meta{font-size:12px;color:var(--muted);margin-top:4px}
+.badge{display:inline-flex;align-items:center;border-radius:999px;padding:3px 8px;font-size:12px;font-weight:800;background:#eef2f7;color:#33435f}.badge.green{background:#e7f6ed;color:var(--green)}.badge.red{background:#ffeded;color:var(--red)}.badge.blue{background:#e8f1ff;color:var(--blue)}
+.birth-list{display:flex;flex-direction:column;gap:8px}.birth-row{display:flex;justify-content:space-between;gap:10px;border:1px solid var(--line);border-radius:12px;padding:9px 10px;background:#fff}.empty{color:var(--muted);font-size:14px;padding:10px 0}
+.time-tabs{display:flex;gap:8px;flex-wrap:wrap}.time-tab{background:#edf1f7;color:#283852;min-width:76px}.time-tab.active{background:var(--blue);color:#fff}
+.route-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.route-title h3{margin:0;font-size:21px}.route-summary{color:var(--muted);font-size:14px}
+.route-table-wrap{overflow:auto}.route-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff}
+.route-table th{background:#f7faff;color:#22314a;border-bottom:1px solid var(--line);padding:12px;text-align:left;font-size:14px}
+.route-table th:nth-child(1){width:170px}.route-table th:nth-child(2),.route-table th:nth-child(3){width:calc((100% - 170px)/2)}
+.route-table td{border-bottom:1px solid var(--line);vertical-align:top;padding:0}.route-table tr:last-child td{border-bottom:0}
+.time-cell{padding:14px 12px;font-weight:900;color:#172033;background:#fbfdff;text-align:left;text-indent:12px}.time-cell .station-time{display:inline-block;margin-left:8px;color:var(--blue);font-weight:900;font-size:14px}
+.stop-box{padding:12px;min-height:72px}.stop-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.stop-name{font-weight:900}.stop-time{color:var(--blue);font-weight:900;font-size:13px}.drop .stop-time{color:var(--green)}
+.rider-list{display:flex;flex-wrap:wrap;gap:6px}.rider{display:inline-flex;align-items:center;gap:5px;background:#eef5ff;border:1px solid #cfe0ff;border-radius:999px;padding:5px 9px;font-size:13px;font-weight:800}.drop .rider{background:#ebfbf2;border-color:#bfeccc}.rider.absent{background:#fff1f1;border-color:#ffd0d0;color:var(--red);text-decoration:line-through}.rider .x{text-decoration:none;color:var(--red)}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px}.schedule-grid{display:grid;grid-template-columns:72px 1fr 1fr;gap:8px;align-items:center;margin-bottom:8px}.day-label{font-weight:900;color:#26354f}.schedule-title{display:grid;grid-template-columns:72px 1fr 1fr;gap:8px;font-size:12px;font-weight:900;color:var(--muted);margin:6px 0 8px}
+.exception-row{border:1px solid var(--line);border-radius:12px;padding:9px 10px;display:flex;justify-content:space-between;gap:8px;align-items:center;margin-bottom:8px}
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(13,25,46,.42);z-index:20;align-items:center;justify-content:center;padding:18px}.modal{width:min(760px,100%);max-height:88vh;overflow:auto;background:#fff;border-radius:22px;box-shadow:0 24px 80px rgba(0,0,0,.22)}.modal-head{padding:17px 20px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between}.modal-head h3{margin:0}.modal-body{padding:18px 20px}.modal-foot{padding:14px 20px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+.notice{background:var(--yellow);border:1px solid #ffe1a6;border-radius:14px;padding:11px 12px;color:#634500;font-size:14px;line-height:1.45}
+@media(max-width:1100px){.layout{grid-template-columns:1fr}.two-col{grid-template-columns:1fr}}
+@media(max-width:760px){.app{padding:14px}.header{flex-direction:column;align-items:stretch}.header-actions{flex-direction:column;align-items:stretch}.date-box{width:100%}.stats{grid-template-columns:1fr}.form-grid,.schedule-grid,.schedule-title{grid-template-columns:1fr}.route-table{min-width:820px}}
+
+.lock-screen{
+  position:fixed; inset:0; z-index:9999;
+  background:linear-gradient(135deg,#08172d,#123b74);
+  display:flex; align-items:center; justify-content:center; padding:20px;
+}
+.lock-card{
+  width:min(420px,100%); background:#fff; border-radius:24px;
+  padding:28px; box-shadow:0 24px 80px rgba(0,0,0,.32);
+}
+.lock-card h2{margin:0 0 8px;font-size:24px}
+.lock-card p{margin:0 0 18px;color:var(--muted);line-height:1.45}
+.lock-card input{margin-bottom:10px}
+.lock-error{display:none;color:var(--red);font-weight:800;font-size:14px;margin-top:8px}
+.sync-badge{
+  display:inline-flex; align-items:center; gap:6px; padding:7px 10px;
+  border-radius:999px; background:#e8f1ff; color:var(--blue);
+  font-size:13px; font-weight:900; white-space:nowrap;
+}
+.sync-badge.off{background:#fff0f0;color:var(--red)}
+
+@media print{body{background:#fff}.side-stack,.header-actions,.time-tabs,.panel-head button,.no-print{display:none!important}.layout{display:block}.panel{box-shadow:none;border:0}.app{max-width:none;padding:0}}
+</style>
+</head>
+<body>
+
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-card">
+    <h2>용인대현대태권도</h2>
+    <p>관리 시스템에 접속하려면 비밀번호를 입력해주세요.</p>
+    <input id="accessPassword" type="password" placeholder="비밀번호 입력" onkeydown="if(event.key==='Enter') window.checkPassword()" />
+    <button style="width:100%" onclick="window.checkPassword()">접속하기</button>
+    <div class="lock-error" id="lockError">비밀번호가 올바르지 않습니다.</div>
+    <p style="font-size:12px;margin-top:14px">초기 비밀번호: <b>1234</b></p>
+  </div>
+</div>
+
+<div class="app">
+  <div class="header">
+    <div class="title">
+      <h1>용인대현대태권도 관원 차량 관리</h1>
+      <p>정류장 시간은 한 번만 표시하고, 승차/하차에는 아이들 이름만 표시됩니다.</p>
+    </div>
+    <div class="header-actions">
+      <input class="date-box" id="viewDate" type="date" onchange="renderAll()" />
+      <button onclick="openStudentModal()">+ 관원 등록</button>
+      <span class="sync-badge off" id="syncStatus">Firebase 연결 전</span>
+      <button class="secondary" onclick="window.print()">인쇄</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <aside class="side-stack">
+      <section class="panel"><div class="panel-head"><h2>관원 현황</h2></div><div class="panel-body"><div class="stats">
+        <div class="stat"><div class="label">총 관원수</div><div class="num" id="statTotal">0</div></div>
+        <div class="stat"><div class="label">재원</div><div class="num" id="statActive">0</div></div>
+        <div class="stat"><div class="label">휴관</div><div class="num" id="statPaused">0</div></div>
+      </div></div></section>
+
+      <section class="panel"><div class="panel-head"><h2>이번 달 생일자</h2></div><div class="panel-body"><div id="birthdayList" class="birth-list"></div></div></section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>관원 명부</h2><button class="small secondary" onclick="openStudentModal()">등록</button></div>
+        <div class="panel-body"><div class="search-row"><input id="searchInput" placeholder="이름 검색" oninput="renderStudents()" /></div><div id="studentList" class="list"></div></div>
+      </section>
+    </aside>
+
+    <main class="main-stack">
+      <section class="panel">
+        <div class="panel-head"><h2>오늘 차량표</h2><div class="time-tabs" id="timeTabs"></div></div>
+        <div class="panel-body">
+          <div class="route-title"><div><h3 id="routeTitle">2시부 차량표</h3><div class="route-summary" id="routeSummary"></div></div><span class="badge blue" id="weekdayBadge"></span></div>
+          <div class="route-table-wrap">
+            <table class="route-table">
+              <thead><tr><th>정류장</th><th>승차</th><th>하차</th></tr></thead>
+              <tbody id="routeBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head"><h2>날짜별 결석 / 일별 스케줄</h2><div><button class="small secondary" onclick="openAbsenceModal()">+ 결석</button><button class="small secondary" onclick="openExceptionModal()">+ 일별 스케줄</button></div></div>
+        <div class="panel-body two-col">
+          <div><h3 style="margin:0 0 10px">선택 날짜 결석</h3><div id="absenceList"></div></div>
+          <div><h3 style="margin:0 0 10px">선택 날짜 일별 스케줄</h3><div id="exceptionList"></div></div>
+        </div>
+      </section>
+
+      <section class="panel"><div class="panel-head"><h2>사용 방식</h2></div><div class="panel-body"><div class="notice">
+        관원을 클릭해 월~금 기본 스케줄을 설정합니다. 같은 정류장도 승차/하차를 각각 선택할 수 있습니다.
+        특정 날짜만 변경되면 일별 스케줄을 추가합니다. 하루에 2타임 이상 수업하는 친구는 일별 스케줄을 여러 번 추가하면 됩니다. 결석은 날짜별로 등록하면 차량표에서 취소선으로 표시됩니다.
+      </div></div></section>
+    </main>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="studentModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="studentModalTitle">관원 등록</h3><button class="secondary small" onclick="closeModal('studentModal')">닫기</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="studentId" />
+      <div class="form-grid">
+        <div class="field"><label>이름</label><input id="studentName" placeholder="예: 김민준" /></div>
+        <div class="field"><label>상태</label><select id="studentStatus"><option>재원</option><option>휴관</option></select></div>
+        <div class="field"><label>생일</label><input id="studentBirthday" type="date" /></div>
+        <div class="field"><label>메모</label><input id="studentMemo" placeholder="선택 입력" /></div>
+      </div>
+      <h3 style="margin:18px 0 8px">기본 스케줄</h3>
+      <div class="schedule-title"><div>요일</div><div>승차</div><div>하차</div></div>
+      <div id="scheduleEditor"></div>
+    </div>
+    <div class="modal-foot"><button class="danger" id="deleteStudentBtn" onclick="deleteStudent()">삭제</button><button class="secondary" onclick="closeModal('studentModal')">취소</button><button onclick="saveStudent()">저장</button></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="absenceModal">
+  <div class="modal">
+    <div class="modal-head"><h3>결석 등록</h3><button class="secondary small" onclick="closeModal('absenceModal')">닫기</button></div>
+    <div class="modal-body"><div class="form-grid"><div class="field"><label>날짜</label><input id="absenceDate" type="date" /></div><div class="field"><label>관원</label><select id="absenceStudent"></select></div></div></div>
+    <div class="modal-foot"><button class="secondary" onclick="closeModal('absenceModal')">취소</button><button onclick="saveAbsence()">등록</button></div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="exceptionModal">
+  <div class="modal">
+    <div class="modal-head"><h3>일별 스케줄 추가</h3><button class="secondary small" onclick="closeModal('exceptionModal')">닫기</button></div>
+    <div class="modal-body"><div class="form-grid">
+      <div class="field"><label>날짜</label><input id="exceptionDate" type="date" /></div>
+      <div class="field"><label>관원</label><select id="exceptionStudent"></select></div>
+      <div class="field"><label>승차</label><select id="exceptionPickup"></select></div>
+      <div class="field"><label>하차</label><select id="exceptionDropoff"></select></div>
+    </div></div>
+    <div class="modal-foot"><button class="secondary" onclick="closeModal('exceptionModal')">취소</button><button onclick="saveException()">등록</button></div>
+  </div>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { 
+  getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, writeBatch
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyClJlalDsg7-Vx-NJpXoKsHD8emu1913KA",
+  authDomain: "hyundai-taekwondo-manager.firebaseapp.com",
+  projectId: "hyundai-taekwondo-manager",
+  storageBucket: "hyundai-taekwondo-manager.firebasestorage.app",
+  messagingSenderId: "399822823416",
+  appId: "1:399822823416:web:1d00ce3c07607773a5800d"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const ACCESS_PASSWORD = "1234";
+let firebaseReady = false;
+
+const TIMES = ["1시부","2시부","4시부","5시부","6시부"];
+const DAYS = ["월","화","수","목","금"];
+const DAY_NAMES = ["일","월","화","수","목","금","토"];
+
+const ROUTES = {
+  "1시부": [{name:"[하교] 우체통", pickup:"12:30", dropoff:"1:00"}],
+  "2시부": [
+    {name:"[하교] 우체통", pickup:"1:30", dropoff:"1:30"},
+    {name:"2단지후문", pickup:"2:15", dropoff:"2:15"},
+    {name:"1단지후문", pickup:"2:17", dropoff:"2:17"},
+    {name:"눈높이", pickup:"2:19", dropoff:"2:19"},
+    {name:"솔리힐", pickup:"2:20", dropoff:"2:20"},
+    {name:"우체통", pickup:"2:21", dropoff:"2:21"},
+    {name:"안심", pickup:"2:23", dropoff:"2:23"},
+    {name:"한화", pickup:"2:25", dropoff:"2:25"}
+  ],
+  "4시부": [
+    {name:"아해뜰", pickup:"3:15", dropoff:"3:15"},
+    {name:"한화", pickup:"3:25", dropoff:"3:25"},
+    {name:"눈높이", pickup:"3:30", dropoff:"3:30"},
+    {name:"안심", pickup:"3:30", dropoff:"3:30"},
+    {name:"우체통", pickup:"3:34", dropoff:"3:34"},
+    {name:"병설", pickup:"3:35", dropoff:"3:35"},
+    {name:"솔리힐", pickup:"", dropoff:"3:40"},
+    {name:"달빛", pickup:"", dropoff:"3:42"},
+    {name:"솔리힐", pickup:"", dropoff:"3:48"}
+  ],
+  "5시부": [
+    {name:"1단지후문", pickup:"5:02", dropoff:"5:02"},
+    {name:"눈높이", pickup:"5:05", dropoff:"5:05"},
+    {name:"우체통", pickup:"5:06", dropoff:"5:06"},
+    {name:"안심", pickup:"5:08", dropoff:"5:08"},
+    {name:"솔리힐", pickup:"5:10", dropoff:"5:10"},
+    {name:"한화", pickup:"5:13", dropoff:"5:13"},
+    {name:"우방", pickup:"5:15", dropoff:"5:15"}
+  ],
+  "6시부": [
+    {name:"안심", pickup:"6:25", dropoff:"6:25"},
+    {name:"1단지후문", pickup:"6:27", dropoff:"6:27"},
+    {name:"눈높이", pickup:"6:28", dropoff:"6:28"},
+    {name:"우체통", pickup:"6:29", dropoff:"6:29"},
+    {name:"솔리힐", pickup:"6:35", dropoff:"6:35"},
+    {name:"한화", pickup:"6:37", dropoff:"6:37"},
+    {name:"우방", pickup:"6:40", dropoff:"6:40"}
+  ]
+};
+
+let currentTime = localStorage.getItem("ymt_currentTime_v12") || "2시부";
+let students = [];
+let absences = [];
+let exceptions = [];
+
+// Old data migration: pickup/dropoff format used to be "시간부|pickup|번호".
+// v6 keeps same value format, but index now points to unified station rows.
+function normalizeOldValue(value){
+  if(!value) return "";
+  const p = value.split("|");
+  if(p.length !== 3) return value;
+  const [time,type,index] = p;
+  if(!ROUTES[time]) return "";
+  return `${time}|${type}|${index}`;
+}
+
+function uid(){ return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function todayStr(){ const d=new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`; }
+function getViewDate(){ return document.getElementById("viewDate").value || todayStr(); }
+function getDayKo(dateStr){ return DAY_NAMES[new Date(dateStr + "T00:00:00").getDay()]; }
+function saveAll(){
+  localStorage.setItem("ymt_currentTime_v12", currentTime);
+}
+function setSyncStatus(text, ok=true){
+  const el = document.getElementById("syncStatus");
+  if(!el) return;
+  el.textContent = text;
+  el.classList.toggle("off", !ok);
+}
+async function saveStudentToDB(student){ await setDoc(doc(db, "students", student.id), student); }
+async function deleteStudentFromDB(id){ await deleteDoc(doc(db, "students", id)); }
+async function saveAbsenceToDB(absence){ await setDoc(doc(db, "absences", absence.id), absence); }
+async function deleteAbsenceFromDB(id){ await deleteDoc(doc(db, "absences", id)); }
+async function saveExceptionToDB(exception){ await setDoc(doc(db, "exceptions", exception.id), exception); }
+async function deleteExceptionFromDB(id){ await deleteDoc(doc(db, "exceptions", id)); }
+
+function routeValue(time,type,index){ return index===""||index===null||index===undefined ? "" : `${time}|${type}|${index}`; }
+function parseRouteValue(value){
+  if(!value) return null;
+  const [time,type,index] = value.split("|");
+  const stop = ROUTES[time]?.[Number(index)];
+  if(!stop) return null;
+  return {time,type,index:Number(index),stop};
+}
+function routeLabel(value){
+  const r = parseRouteValue(value);
+  if(!r) return "미설정";
+  const t = r.type === "pickup" ? r.stop.pickup : r.stop.dropoff;
+  return `${r.time} / ${r.stop.name}${t ? " ("+t+")" : ""}`;
+}
+function stopOptionsByType(type){
+  const options = ['<option value="">미설정</option>'];
+  TIMES.forEach(time=>{
+    const arr = ROUTES[time] || [];
+    options.push(`<optgroup label="${time} ${type==="pickup"?"승차":"하차"}">`);
+    arr.forEach((s,i)=>{
+      const t = type==="pickup" ? s.pickup : s.dropoff;
+      const label = `${s.name}${t ? " ("+t+")" : ""}`;
+      options.push(`<option value="${routeValue(time,type,i)}">${label}</option>`);
+    });
+    options.push(`</optgroup>`);
+  });
+  return options.join("");
+}
+function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+
+function renderAll(){ renderStats(); renderBirthdays(); renderStudents(); renderTabs(); renderRoute(); renderDateLists(); }
+function renderStats(){
+  const active=students.filter(s=>s.status!=="휴관");
+  document.getElementById("statTotal").textContent=students.length;
+  document.getElementById("statActive").textContent=active.length;
+  document.getElementById("statPaused").textContent=students.length-active.length;
+}
+function renderBirthdays(){
+  const box=document.getElementById("birthdayList");
+  const date=new Date(getViewDate()+"T00:00:00"); const y=date.getFullYear(); const m=date.getMonth();
+  const list=students.filter(s=>s.birthday).map(s=>{const b=new Date(s.birthday+"T00:00:00");const ty=new Date(y,b.getMonth(),b.getDate());const diff=Math.ceil((ty-date)/(1000*60*60*24));return {...s,birthMonth:b.getMonth(),birthDay:b.getDate(),diff};}).filter(s=>s.birthMonth===m).sort((a,b)=>a.birthDay-b.birthDay);
+  if(!list.length){box.innerHTML=`<div class="empty">이번 달 생일자가 없습니다.</div>`;return;}
+  box.innerHTML=list.map(s=>{const d=s.diff===0?"오늘":s.diff>0?`D-${s.diff}`:"완료";return `<div class="birth-row"><b>${escapeHtml(s.name)}</b><span>${m+1}/${s.birthDay} · ${d}</span></div>`}).join("");
+}
+function renderStudents(){
+  const q=document.getElementById("searchInput")?.value?.trim()||""; const box=document.getElementById("studentList");
+  let list=[...students].sort((a,b)=>a.name.localeCompare(b.name,"ko")); if(q) list=list.filter(s=>s.name.includes(q));
+  if(!list.length){box.innerHTML=`<div class="empty">등록된 관원이 없습니다.</div>`;return;}
+  box.innerHTML=list.map(s=>{const badge=s.status==="휴관"?`<span class="badge red">휴관</span>`:`<span class="badge green">재원</span>`;return `<div class="student-item" onclick="openStudentModal('${s.id}')"><div class="student-name">${escapeHtml(s.name)} ${badge}</div><div class="student-meta">${escapeHtml(s.memo||"")} ${s.birthday?" · 생일 "+s.birthday.slice(5).replace("-","/"):""}</div></div>`}).join("");
+}
+function renderTabs(){
+  document.getElementById("timeTabs").innerHTML=TIMES.map(t=>`<button class="time-tab ${t===currentTime?'active':''}" onclick="setTime('${t}')">${t}</button>`).join("");
+}
+function setTime(t){currentTime=t;saveAll();renderTabs();renderRoute();}
+function getSchedulesForStudent(student,dateStr){
+  const exList = exceptions.filter(e=>e.studentId===student.id && e.date===dateStr);
+  if(exList.length){
+    return exList.map(e=>({pickup:e.pickup||"", dropoff:e.dropoff||"", source:"일별"}));
+  }
+  const day=getDayKo(dateStr); 
+  if(!DAYS.includes(day)) return [];
+  const base = student.schedule?.[day];
+  return base ? [base] : [];
+}
+
+function isAbsent(studentId,dateStr){return absences.some(a=>a.studentId===studentId&&a.date===dateStr);}
+function collectRiders(time,type,index){
+  const dateStr=getViewDate();
+  return students.filter(s=>s.status!=="휴관").filter(s=>{
+    const schedules=getSchedulesForStudent(s,dateStr);
+    return schedules.some(sch=>{
+      const value=type==="pickup"?sch.pickup:sch.dropoff; 
+      const r=parseRouteValue(value);
+      return r&&r.time===time&&r.type===type&&r.index===index;
+    });
+  }).sort((a,b)=>a.name.localeCompare(b.name,"ko"));
+}
+
+function renderRiders(time,type,index){
+  const riders=collectRiders(time,type,index); if(!riders.length) return `<div class="empty">배정 없음</div>`;
+  const dateStr=getViewDate();
+  return `<div class="rider-list">`+riders.map(s=>{const absent=isAbsent(s.id,dateStr);return `<span class="rider ${absent?'absent':''}">${escapeHtml(s.name)}${absent?'<span class="x">결석</span>':''}</span>`}).join("")+`</div>`;
+}
+function stopCell(time,type,stop,index){
+  return `<div class="stop-box ${type==='dropoff'?'drop':''}">${renderRiders(time,type,index)}</div>`;
+}
+function renderRoute(){
+  const dateStr=getViewDate(); const day=getDayKo(dateStr);
+  document.getElementById("weekdayBadge").textContent=`${dateStr} ${day}요일`;
+  document.getElementById("routeTitle").textContent=`${currentTime} 차량표`;
+  const stops=ROUTES[currentTime]||[];
+  document.getElementById("routeBody").innerHTML=stops.map((stop,i)=>`<tr>
+    <td class="time-cell">${escapeHtml(stop.name)}<span class="station-time">${escapeHtml(stop.pickup || stop.dropoff || "")}</span></td>
+    <td>${stopCell(currentTime,"pickup",stop,i)}</td>
+    <td>${stopCell(currentTime,"dropoff",stop,i)}</td>
+  </tr>`).join("");
+  let pc=0,dc=0,ac=0; stops.forEach((_,i)=>{pc+=collectRiders(currentTime,"pickup",i).length; dc+=collectRiders(currentTime,"dropoff",i).length}); students.forEach(s=>{if(isAbsent(s.id,dateStr))ac++;});
+  document.getElementById("routeSummary").textContent=`승차 ${pc}명 · 하차 ${dc}명 · 결석 ${ac}명`;
+}
+function renderDateLists(){
+  const dateStr=getViewDate(); const aBox=document.getElementById("absenceList"); const eBox=document.getElementById("exceptionList");
+  const todaysAbs=absences.filter(a=>a.date===dateStr);
+  aBox.innerHTML=todaysAbs.length?todaysAbs.map(a=>{const s=students.find(x=>x.id===a.studentId);return `<div class="exception-row"><span>${escapeHtml(s?.name||"알 수 없음")}</span><button class="small danger" onclick="removeAbsence('${a.id}')">삭제</button></div>`}).join(""):`<div class="empty">등록된 결석이 없습니다.</div>`;
+  const todaysEx=exceptions.filter(e=>e.date===dateStr);
+  eBox.innerHTML=todaysEx.length?todaysEx.map(e=>{const s=students.find(x=>x.id===e.studentId);return `<div class="exception-row"><span><b>${escapeHtml(s?.name||"알 수 없음")}</b><br><small>승차: ${routeLabel(e.pickup)}<br>하차: ${routeLabel(e.dropoff)}</small></span><button class="small danger" onclick="removeException('${e.id}')">삭제</button></div>`}).join(""):`<div class="empty">등록된 일별 스케줄이 없습니다.</div>`;
+}
+function openModal(id){document.getElementById(id).style.display="flex";}
+function closeModal(id){document.getElementById(id).style.display="none";}
+function openStudentModal(id=""){
+  document.getElementById("studentId").value=id; const isEdit=!!id;
+  const s=students.find(x=>x.id===id)||{name:"",status:"재원",birthday:"",memo:"",schedule:{}};
+  document.getElementById("studentModalTitle").textContent=isEdit?"관원 수정":"관원 등록";
+  document.getElementById("studentName").value=s.name||""; document.getElementById("studentStatus").value=s.status||"재원"; document.getElementById("studentBirthday").value=s.birthday||""; document.getElementById("studentMemo").value=s.memo||"";
+  document.getElementById("deleteStudentBtn").style.display=isEdit?"inline-block":"none";
+  const pickupOptions=stopOptionsByType("pickup"); const dropoffOptions=stopOptionsByType("dropoff");
+  document.getElementById("scheduleEditor").innerHTML=DAYS.map(day=>`<div class="schedule-grid"><div class="day-label">${day}</div><select id="sch_${day}_pickup">${pickupOptions}</select><select id="sch_${day}_dropoff">${dropoffOptions}</select></div>`).join("");
+  DAYS.forEach(day=>{const sch=s.schedule?.[day]||{}; document.getElementById(`sch_${day}_pickup`).value=normalizeOldValue(sch.pickup||""); document.getElementById(`sch_${day}_dropoff`).value=normalizeOldValue(sch.dropoff||"");});
+  openModal("studentModal"); setTimeout(()=>document.getElementById("studentName").focus(),50);
+}
+async function saveStudent(){
+  const id=document.getElementById("studentId").value; const name=document.getElementById("studentName").value.trim(); if(!name){alert("이름을 입력해주세요.");return;}
+  const data={id:id||uid(),name,status:document.getElementById("studentStatus").value,birthday:document.getElementById("studentBirthday").value,memo:document.getElementById("studentMemo").value.trim(),schedule:{}};
+  DAYS.forEach(day=>{data.schedule[day]={pickup:document.getElementById(`sch_${day}_pickup`).value,dropoff:document.getElementById(`sch_${day}_dropoff`).value};});
+  try{
+    await saveStudentToDB(data);
+    closeModal("studentModal");
+  }catch(err){
+    alert("관원 저장 오류: " + err.message);
+  }
+}
+async function deleteStudent(){
+  const id=document.getElementById("studentId").value; if(!id)return;
+  if(!confirm("관원을 삭제할까요? 삭제하면 관련 결석/일별 스케줄도 함께 삭제됩니다."))return;
+  try{
+    await deleteStudentFromDB(id);
+    const relatedAbsences = absences.filter(a=>a.studentId===id);
+    const relatedExceptions = exceptions.filter(e=>e.studentId===id);
+    await Promise.all([
+      ...relatedAbsences.map(a=>deleteAbsenceFromDB(a.id)),
+      ...relatedExceptions.map(e=>deleteExceptionFromDB(e.id))
+    ]);
+    closeModal("studentModal");
+  }catch(err){
+    alert("관원 삭제 오류: " + err.message);
+  }
+}
+function fillStudentSelect(id){
+  const select=document.getElementById(id); const opts=students.filter(s=>s.status!=="휴관").sort((a,b)=>a.name.localeCompare(b.name,"ko")).map(s=>`<option value="${s.id}">${escapeHtml(s.name)}</option>`);
+  select.innerHTML=opts.length?opts.join(""):`<option value="">관원 없음</option>`;
+}
+function openAbsenceModal(){document.getElementById("absenceDate").value=getViewDate(); fillStudentSelect("absenceStudent"); openModal("absenceModal");}
+async function saveAbsence(){
+  const date=document.getElementById("absenceDate").value; const studentId=document.getElementById("absenceStudent").value; if(!date||!studentId){alert("날짜와 관원을 선택해주세요.");return;}
+  if(absences.some(a=>a.date===date&&a.studentId===studentId)){
+    closeModal("absenceModal");
+    return;
+  }
+  try{
+    await saveAbsenceToDB({id:uid(),date,studentId});
+    closeModal("absenceModal");
+  }catch(err){
+    alert("결석 저장 오류: " + err.message);
+  }
+}
+async function removeAbsence(id){try{await deleteAbsenceFromDB(id);}catch(err){alert('결석 삭제 오류: ' + err.message);}}
+function openExceptionModal(){
+  document.getElementById("exceptionDate").value=getViewDate(); fillStudentSelect("exceptionStudent");
+  document.getElementById("exceptionPickup").innerHTML=stopOptionsByType("pickup");
+  document.getElementById("exceptionDropoff").innerHTML=stopOptionsByType("dropoff");
+  openModal("exceptionModal");
+}
+async function saveException(){
+  const date=document.getElementById("exceptionDate").value; const studentId=document.getElementById("exceptionStudent").value; if(!date||!studentId){alert("날짜와 관원을 선택해주세요.");return;}
+  const data = {id:uid(),date,studentId,pickup:document.getElementById("exceptionPickup").value,dropoff:document.getElementById("exceptionDropoff").value};
+  try{
+    await saveExceptionToDB(data);
+    closeModal("exceptionModal");
+  }catch(err){
+    alert("일별 스케줄 저장 오류: " + err.message);
+  }
+}
+async function removeException(id){try{await deleteExceptionFromDB(id);}catch(err){alert('일별 스케줄 삭제 오류: ' + err.message);}}
+
+
+function checkPassword(){
+  const input = document.getElementById("accessPassword");
+  const err = document.getElementById("lockError");
+  if(input.value === ACCESS_PASSWORD){
+    sessionStorage.setItem("ymt_unlocked", "1");
+    document.getElementById("lockScreen").style.display = "none";
+    startFirebaseSync();
+  }else{
+    err.style.display = "block";
+    input.focus();
+  }
+}
+
+function startFirebaseSync(){
+  if(firebaseReady) return;
+  firebaseReady = true;
+  setSyncStatus("Firebase 연결 중...", false);
+
+  onSnapshot(collection(db, "students"), snap=>{
+    students = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderAll();
+    setSyncStatus("실시간 동기화 중", true);
+  }, err=>{
+    console.error(err);
+    setSyncStatus("연결 오류", false);
+    alert("Firebase 관원 연결 오류: " + err.message);
+  });
+
+  onSnapshot(collection(db, "absences"), snap=>{
+    absences = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderAll();
+  }, err=>{
+    console.error(err);
+    setSyncStatus("연결 오류", false);
+  });
+
+  onSnapshot(collection(db, "exceptions"), snap=>{
+    exceptions = snap.docs.map(d=>({id:d.id, ...d.data()}));
+    renderAll();
+  }, err=>{
+    console.error(err);
+    setSyncStatus("연결 오류", false);
+  });
+}
+
+async function seedSampleIfEmpty(){
+  const snap = await getDocs(collection(db, "students"));
+  if(!snap.empty) return;
+  const sample = [
+    {id:uid(),name:"김민준",status:"재원",birthday:"2017-06-11",memo:"샘플",schedule:{"월":{pickup:"2시부|pickup|0",dropoff:"4시부|dropoff|6"},"화":{pickup:"2시부|pickup|3",dropoff:"2시부|dropoff|3"},"수":{pickup:"4시부|pickup|4",dropoff:"4시부|dropoff|8"},"목":{pickup:"",dropoff:""},"금":{pickup:"5시부|pickup|2",dropoff:"5시부|dropoff|2"}}},
+    {id:uid(),name:"이서윤",status:"재원",birthday:"2017-06-18",memo:"샘플",schedule:{"월":{pickup:"2시부|pickup|4",dropoff:"4시부|dropoff|7"},"화":{pickup:"4시부|pickup|1",dropoff:"4시부|dropoff|1"},"수":{pickup:"2시부|pickup|7",dropoff:"2시부|dropoff|7"},"목":{pickup:"6시부|pickup|3",dropoff:"6시부|dropoff|3"},"금":{pickup:"",dropoff:""}}}
+  ];
+  const batch = writeBatch(db);
+  sample.forEach(s=>batch.set(doc(db,"students",s.id),s));
+  await batch.commit();
+}
+
+window.checkPassword = checkPassword;
+window.openStudentModal = openStudentModal;
+window.closeModal = closeModal;
+window.saveStudent = saveStudent;
+window.deleteStudent = deleteStudent;
+window.openAbsenceModal = openAbsenceModal;
+window.saveAbsence = saveAbsence;
+window.removeAbsence = removeAbsence;
+window.openExceptionModal = openExceptionModal;
+window.saveException = saveException;
+window.removeException = removeException;
+window.renderAll = renderAll;
+window.renderStudents = renderStudents;
+window.setTime = setTime;
+
+(async function init(){
+  document.getElementById("viewDate").value=todayStr();
+  renderAll();
+  try{
+    await seedSampleIfEmpty();
+  }catch(err){
+    console.warn("샘플 데이터 확인 실패:", err);
+  }
+  if(sessionStorage.getItem("ymt_unlocked")==="1"){
+    document.getElementById("lockScreen").style.display = "none";
+    startFirebaseSync();
+  }else{
+    document.getElementById("accessPassword").focus();
+  }
+})();
+
+</script>
+</body>
+</html>
