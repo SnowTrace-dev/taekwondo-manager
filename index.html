@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>용인대현대태권도 관원 차량 관리 v16 RoutesAdmin</title>
+<title>용인대현대태권도 관원 차량 관리 v17 BackupUI</title>
 <style>
 :root{
   --bg:#f3f6fb;--card:#fff;--ink:#172033;--muted:#718096;--line:#dde5f0;
@@ -38,7 +38,7 @@ input:focus,select:focus,textarea:focus{border-color:#8ab4f8;box-shadow:0 0 0 3p
 .route-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.route-title h3{margin:0;font-size:21px}.route-summary{color:var(--muted);font-size:14px}
 .route-table-wrap{overflow:auto}.route-table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#fff}
 .route-table th{background:#f7faff;color:#22314a;border-bottom:1px solid var(--line);padding:12px;text-align:left;font-size:14px}
-.route-table th:nth-child(1){width:170px}.route-table th:nth-child(2),.route-table th:nth-child(3){width:calc((100% - 170px)/2)}
+.route-table th:nth-child(1){width:230px}.route-table th:nth-child(2),.route-table th:nth-child(3){width:calc((100% - 230px)/2)}
 .route-table td{border-bottom:1px solid var(--line);vertical-align:top;padding:0}.route-table tr:last-child td{border-bottom:0}
 .time-cell{padding:14px 12px;font-weight:900;color:#172033;background:#fbfdff;text-align:left;text-indent:12px}.time-cell .station-time{display:inline-block;margin-left:8px;color:var(--blue);font-weight:900;font-size:14px}
 .stop-box{padding:12px;min-height:72px}.stop-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}.stop-name{font-weight:900}.stop-time{color:var(--blue);font-weight:900;font-size:13px}.drop .stop-time{color:var(--green)}
@@ -161,6 +161,25 @@ input:focus,select:focus,textarea:focus{border-color:#8ab4f8;box-shadow:0 0 0 3p
   .route-admin-actions{grid-column:1/3;justify-content:flex-start}
 }
 
+
+/* v17 차량표 가독성 강화 */
+.route-table th{font-size:20px;padding:16px}
+.time-cell{font-size:24px}
+.time-cell .station-time{font-size:22px}
+.stop-box{padding:14px 10px;min-height:82px}
+.rider{font-size:24px;padding:8px 12px;border-radius:14px}
+.empty{font-size:18px}
+.route-summary{font-size:18px}
+.route-title h3{font-size:28px}
+.badge{font-size:16px;padding:5px 11px}
+@media(max-width:760px){
+  .route-table th:nth-child(1){width:auto}
+  .time-cell{font-size:20px!important}
+  .time-cell .station-time{font-size:18px!important}
+  .rider{font-size:18px!important;padding:7px 10px!important}
+  .empty{font-size:15px!important}
+}
+
 @media print{body{background:#fff}.side-stack,.header-actions,.time-tabs,.panel-head button,.no-print{display:none!important}.layout{display:block}.panel{box-shadow:none;border:0}.app{max-width:none;padding:0}}
 </style>
 </head>
@@ -185,9 +204,10 @@ input:focus,select:focus,textarea:focus{border-color:#8ab4f8;box-shadow:0 0 0 3p
     </div>
     <div class="header-actions">
       <input class="date-box" id="viewDate" type="date" onchange="renderAll()" />
-      <button onclick="openStudentModal()">+ 관원 등록</button>
+      <button class="secondary" onclick="exportBackup()">JSON 백업</button>
+      <button class="secondary" onclick="document.getElementById('backupFileInput').click()">JSON 복원</button>
+      <input id="backupFileInput" type="file" accept="application/json,.json" style="display:none" onchange="importBackup(event)" />
       <span class="sync-badge off" id="syncStatus">Firebase 연결 전</span>
-      <button class="secondary" onclick="window.print()">인쇄</button>
     </div>
   </div>
 
@@ -781,6 +801,78 @@ function startFirebaseSync(){
   });
 }
 
+
+function downloadTextFile(filename, text){
+  const blob = new Blob([text], {type:"application/json;charset=utf-8"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+function exportBackup(){
+  const data = {
+    version: "v17",
+    exportedAt: new Date().toISOString(),
+    students,
+    absences,
+    exceptions,
+    routes
+  };
+  const date = new Date().toISOString().slice(0,10);
+  downloadTextFile(`taekwondo-manager-backup-${date}.json`, JSON.stringify(data,null,2));
+}
+async function clearCollection(name){
+  const snap = await getDocs(collection(db, name));
+  const batch = writeBatch(db);
+  snap.docs.forEach(d=>batch.delete(doc(db, name, d.id)));
+  await batch.commit();
+}
+async function importBackup(event){
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if(!file) return;
+  if(!confirm("JSON 백업 파일로 복원할까요? 현재 Firebase 데이터가 백업 내용으로 교체됩니다.")) return;
+
+  try{
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    const nextStudents = Array.isArray(data.students) ? data.students : [];
+    const nextAbsences = Array.isArray(data.absences) ? data.absences : [];
+    const nextExceptions = Array.isArray(data.exceptions) ? data.exceptions : [];
+    const nextRoutes = normalizeRoutesData(data.routes || DEFAULT_ROUTES);
+
+    await clearCollection("students");
+    await clearCollection("absences");
+    await clearCollection("exceptions");
+
+    const batch = writeBatch(db);
+    nextStudents.forEach(s=>{
+      if(!s.id) s.id = uid();
+      batch.set(doc(db,"students",s.id),s);
+    });
+    nextAbsences.forEach(a=>{
+      if(!a.id) a.id = uid();
+      batch.set(doc(db,"absences",a.id),a);
+    });
+    nextExceptions.forEach(e=>{
+      if(!e.id) e.id = uid();
+      batch.set(doc(db,"exceptions",e.id),e);
+    });
+    batch.set(doc(db,"settings","routes"), {routes: nextRoutes});
+    await batch.commit();
+
+    alert("복원이 완료되었습니다.");
+  }catch(err){
+    alert("복원 오류: " + err.message);
+  }
+}
+
+
 window.checkPassword = checkPassword;
 window.openStudentModal = openStudentModal;
 window.closeModal = closeModal;
@@ -800,6 +892,8 @@ window.openRouteStopModal = openRouteStopModal;
 window.saveRouteStop = saveRouteStop;
 window.moveRouteStop = moveRouteStop;
 window.deleteRouteStop = deleteRouteStop;
+window.exportBackup = exportBackup;
+window.importBackup = importBackup;
 
 (async function init(){
   document.getElementById("viewDate").value=todayStr();
