@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>용인대현대태권도 관원 차량 관리 v14 Mobile2</title>
+<title>용인대현대태권도 관원 차량 관리 v16 RoutesAdmin</title>
 <style>
 :root{
   --bg:#f3f6fb;--card:#fff;--ink:#172033;--muted:#718096;--line:#dde5f0;
@@ -148,6 +148,19 @@ input:focus,select:focus,textarea:focus{border-color:#8ab4f8;box-shadow:0 0 0 3p
   .modal-foot{padding:12px 15px;position:sticky;bottom:0;background:#fff}
 }
 
+
+.route-admin-list{display:flex;flex-direction:column;gap:8px}
+.route-admin-row{display:grid;grid-template-columns:42px 1fr 84px auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:12px;padding:9px;background:#fff}
+.route-admin-order{font-weight:900;color:var(--muted);text-align:center}
+.route-admin-name{font-weight:900}
+.route-admin-time{font-weight:900;color:var(--blue)}
+.route-admin-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:760px){
+  .route-admin-row{grid-template-columns:34px 1fr;gap:6px}
+  .route-admin-time{grid-column:2/3}
+  .route-admin-actions{grid-column:1/3;justify-content:flex-start}
+}
+
 @media print{body{background:#fff}.side-stack,.header-actions,.time-tabs,.panel-head button,.no-print{display:none!important}.layout{display:block}.panel{box-shadow:none;border:0}.app{max-width:none;padding:0}}
 </style>
 </head>
@@ -168,7 +181,7 @@ input:focus,select:focus,textarea:focus{border-color:#8ab4f8;box-shadow:0 0 0 3p
   <div class="header">
     <div class="title">
       <h1>용인대현대태권도 관원 차량 관리</h1>
-      <p>정류장 시간은 한 번만 표시하고, 승차/하차에는 아이들 이름만 표시됩니다.</p>
+      <p>정류장 관리에서 시간부별 정류장을 직접 수정할 수 있습니다.</p>
     </div>
     <div class="header-actions">
       <input class="date-box" id="viewDate" type="date" onchange="renderAll()" />
@@ -224,6 +237,23 @@ input:focus,select:focus,textarea:focus{border-color:#8ab4f8;box-shadow:0 0 0 3p
         </div>
       </section>
 
+
+      <section class="panel" id="routeAdminPanel">
+        <div class="panel-head">
+          <h2>정류장 관리</h2>
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <select id="routeAdminTime" style="width:120px" onchange="renderRouteAdmin()"></select>
+            <button class="small secondary" onclick="openRouteStopModal()">+ 정류장</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div class="notice" style="margin-bottom:10px">
+            정류장을 수정하면 차량표와 관원 스케줄 선택 목록에 바로 반영됩니다. 삭제하면 기존에 해당 정류장으로 배정된 관원은 표시되지 않을 수 있으니 주의해주세요.
+          </div>
+          <div id="routeAdminList" class="route-admin-list"></div>
+        </div>
+      </section>
+
       <section class="panel"><div class="panel-head"><h2>사용 방식</h2></div><div class="panel-body"><div class="notice">
         관원을 클릭해 월~금 기본 스케줄을 설정합니다. 같은 정류장도 승차/하차를 각각 선택할 수 있습니다.
         특정 날짜만 변경되면 일별 스케줄을 추가합니다. 하루에 2타임 이상 수업하는 친구는 일별 스케줄을 여러 번 추가하면 됩니다. 결석은 날짜별로 등록하면 차량표에서 취소선으로 표시됩니다.
@@ -272,6 +302,26 @@ input:focus,select:focus,textarea:focus{border-color:#8ab4f8;box-shadow:0 0 0 3p
   </div>
 </div>
 
+
+<div class="modal-backdrop" id="routeStopModal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="routeStopModalTitle">정류장 추가</h3><button class="secondary small" onclick="closeModal('routeStopModal')">닫기</button></div>
+    <div class="modal-body">
+      <input type="hidden" id="routeStopIndex" />
+      <div class="form-grid">
+        <div class="field"><label>시간부</label><select id="routeStopTime"></select></div>
+        <div class="field"><label>정류장명</label><input id="routeStopName" placeholder="예: 2단지후문" /></div>
+        <div class="field"><label>시간</label><input id="routeStopClock" placeholder="예: 3:26" /></div>
+      </div>
+      <div class="notice">현재 구조는 승차/하차 시간이 동일한 정류장 기준입니다.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="secondary" onclick="closeModal('routeStopModal')">취소</button>
+      <button onclick="saveRouteStop()">저장</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
@@ -298,7 +348,7 @@ const TIMES = ["1시부","2시부","4시부","5시부","6시부"];
 const DAYS = ["월","화","수","목","금"];
 const DAY_NAMES = ["일","월","화","수","목","금","토"];
 
-const ROUTES = {
+const DEFAULT_ROUTES = {
   "1시부": [{name:"[하교] 우체통", pickup:"12:30", dropoff:"1:00"}],
   "2시부": [
     {name:"[하교] 우체통", pickup:"1:30", dropoff:"1:30"},
@@ -313,14 +363,15 @@ const ROUTES = {
   "4시부": [
     {name:"아해뜰", pickup:"3:15", dropoff:"3:15"},
     {name:"한화", pickup:"3:25", dropoff:"3:25"},
+    {name:"2단지후문", pickup:"3:26", dropoff:"3:26"},
     {name:"1단지후문", pickup:"3:28", dropoff:"3:28"},
     {name:"눈높이", pickup:"3:30", dropoff:"3:30"},
     {name:"안심", pickup:"3:30", dropoff:"3:30"},
-    {name:"우체통", pickup:"3:34", dropoff:"3:34"},
-    {name:"병설", pickup:"3:35", dropoff:"3:35"},
-    {name:"솔리힐", pickup:"", dropoff:"3:40"},
-    {name:"달빛", pickup:"", dropoff:"3:42"},
-    {name:"솔리힐", pickup:"", dropoff:"3:48"}
+    {name:"병설", pickup:"3:34", dropoff:"3:34"},
+    {name:"우체통", pickup:"3:35", dropoff:"3:35"},
+    {name:"솔리힐", pickup:"3:40", dropoff:"3:40"},
+    {name:"달빛", pickup:"3:42", dropoff:"3:42"},
+    {name:"솔리힐", pickup:"3:48", dropoff:"3:48"}
   ],
   "5시부": [
     {name:"1단지후문", pickup:"5:02", dropoff:"5:02"},
@@ -342,6 +393,8 @@ const ROUTES = {
   ]
 };
 
+let routes = JSON.parse(JSON.stringify(DEFAULT_ROUTES));
+
 let currentTime = localStorage.getItem("ymt_currentTime_v12") || "2시부";
 let students = [];
 let absences = [];
@@ -354,7 +407,7 @@ function normalizeOldValue(value){
   const p = value.split("|");
   if(p.length !== 3) return value;
   const [time,type,index] = p;
-  if(!ROUTES[time]) return "";
+  if(!routes[time]) return "";
   return `${time}|${type}|${index}`;
 }
 
@@ -377,12 +430,13 @@ async function saveAbsenceToDB(absence){ await setDoc(doc(db, "absences", absenc
 async function deleteAbsenceFromDB(id){ await deleteDoc(doc(db, "absences", id)); }
 async function saveExceptionToDB(exception){ await setDoc(doc(db, "exceptions", exception.id), exception); }
 async function deleteExceptionFromDB(id){ await deleteDoc(doc(db, "exceptions", id)); }
+async function saveRoutesToDB(){ await setDoc(doc(db, "settings", "routes"), {routes}); }
 
 function routeValue(time,type,index){ return index===""||index===null||index===undefined ? "" : `${time}|${type}|${index}`; }
 function parseRouteValue(value){
   if(!value) return null;
   const [time,type,index] = value.split("|");
-  const stop = ROUTES[time]?.[Number(index)];
+  const stop = routes[time]?.[Number(index)];
   if(!stop) return null;
   return {time,type,index:Number(index),stop};
 }
@@ -395,7 +449,7 @@ function routeLabel(value){
 function stopOptionsByType(type){
   const options = ['<option value="">미설정</option>'];
   TIMES.forEach(time=>{
-    const arr = ROUTES[time] || [];
+    const arr = routes[time] || [];
     options.push(`<optgroup label="${time} ${type==="pickup"?"승차":"하차"}">`);
     arr.forEach((s,i)=>{
       const t = type==="pickup" ? s.pickup : s.dropoff;
@@ -408,7 +462,7 @@ function stopOptionsByType(type){
 }
 function escapeHtml(s){ return String(s||"").replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
 
-function renderAll(){ renderStats(); renderBirthdays(); renderStudents(); renderTabs(); renderRoute(); renderDateLists(); }
+function renderAll(){ renderStats(); renderBirthdays(); renderStudents(); renderTabs(); renderRoute(); renderDateLists(); fillRouteAdminTimeSelect(); renderRouteAdmin(); }
 function renderStats(){
   const active=students.filter(s=>s.status!=="휴관");
   document.getElementById("statTotal").textContent=students.length;
@@ -468,7 +522,7 @@ function renderRoute(){
   const dateStr=getViewDate(); const day=getDayKo(dateStr);
   document.getElementById("weekdayBadge").textContent=`${dateStr} ${day}요일`;
   document.getElementById("routeTitle").textContent=`${currentTime} 차량표`;
-  const stops=ROUTES[currentTime]||[];
+  const stops=routes[currentTime]||[];
   document.getElementById("routeBody").innerHTML=stops.map((stop,i)=>`<tr>
     <td class="time-cell">${escapeHtml(stop.name)}<span class="station-time">${escapeHtml(stop.pickup || stop.dropoff || "")}</span></td>
     <td>${stopCell(currentTime,"pickup",stop,i)}</td>
@@ -562,6 +616,112 @@ async function saveException(){
 async function removeException(id){try{await deleteExceptionFromDB(id);}catch(err){alert('일별 스케줄 삭제 오류: ' + err.message);}}
 
 
+
+function normalizeRoutesData(input){
+  const base = JSON.parse(JSON.stringify(DEFAULT_ROUTES));
+  if(!input || typeof input !== "object") return base;
+  TIMES.forEach(time=>{
+    if(Array.isArray(input[time])){
+      base[time] = input[time].map(s=>({
+        name: String(s.name || ""),
+        pickup: String(s.pickup || s.time || ""),
+        dropoff: String(s.dropoff || s.pickup || s.time || "")
+      })).filter(s=>s.name);
+    }
+  });
+  return base;
+}
+function fillRouteAdminTimeSelect(){
+  const sel = document.getElementById("routeAdminTime");
+  if(!sel) return;
+  if(!sel.innerHTML){
+    sel.innerHTML = TIMES.map(t=>`<option value="${t}">${t}</option>`).join("");
+  }
+  if(!sel.value) sel.value = currentTime;
+}
+function renderRouteAdmin(){
+  const sel = document.getElementById("routeAdminTime");
+  const box = document.getElementById("routeAdminList");
+  if(!sel || !box) return;
+  const time = sel.value || currentTime;
+  const list = routes[time] || [];
+  if(!list.length){
+    box.innerHTML = `<div class="empty">등록된 정류장이 없습니다.</div>`;
+    return;
+  }
+  box.innerHTML = list.map((stop,i)=>`
+    <div class="route-admin-row">
+      <div class="route-admin-order">${i+1}</div>
+      <div class="route-admin-name">${escapeHtml(stop.name)}</div>
+      <div class="route-admin-time">${escapeHtml(stop.pickup || stop.dropoff || "")}</div>
+      <div class="route-admin-actions">
+        <button class="small secondary" onclick="moveRouteStop('${time}',${i},-1)">↑</button>
+        <button class="small secondary" onclick="moveRouteStop('${time}',${i},1)">↓</button>
+        <button class="small secondary" onclick="openRouteStopModal('${time}',${i})">수정</button>
+        <button class="small danger" onclick="deleteRouteStop('${time}',${i})">삭제</button>
+      </div>
+    </div>
+  `).join("");
+}
+function openRouteStopModal(time="", index=""){
+  const targetTime = time || document.getElementById("routeAdminTime")?.value || currentTime;
+  const stop = index !== "" ? routes[targetTime]?.[index] : null;
+  document.getElementById("routeStopModalTitle").textContent = stop ? "정류장 수정" : "정류장 추가";
+  document.getElementById("routeStopIndex").value = index;
+  const timeSel = document.getElementById("routeStopTime");
+  timeSel.innerHTML = TIMES.map(t=>`<option value="${t}">${t}</option>`).join("");
+  timeSel.value = targetTime;
+  document.getElementById("routeStopName").value = stop?.name || "";
+  document.getElementById("routeStopClock").value = stop?.pickup || stop?.dropoff || "";
+  openModal("routeStopModal");
+}
+async function saveRouteStop(){
+  const time = document.getElementById("routeStopTime").value;
+  const indexRaw = document.getElementById("routeStopIndex").value;
+  const name = document.getElementById("routeStopName").value.trim();
+  const clock = document.getElementById("routeStopClock").value.trim();
+  if(!name){ alert("정류장명을 입력해주세요."); return; }
+  if(!clock){ alert("시간을 입력해주세요."); return; }
+  if(!routes[time]) routes[time] = [];
+  const data = {name, pickup:clock, dropoff:clock};
+  if(indexRaw === ""){
+    routes[time].push(data);
+  }else{
+    routes[time][Number(indexRaw)] = data;
+  }
+  try{
+    await saveRoutesToDB();
+    closeModal("routeStopModal");
+    renderAll();
+  }catch(err){
+    alert("정류장 저장 오류: " + err.message);
+  }
+}
+async function moveRouteStop(time,index,dir){
+  const list = routes[time] || [];
+  const next = index + dir;
+  if(next < 0 || next >= list.length) return;
+  [list[index], list[next]] = [list[next], list[index]];
+  try{
+    await saveRoutesToDB();
+    renderAll();
+  }catch(err){
+    alert("정류장 순서 변경 오류: " + err.message);
+  }
+}
+async function deleteRouteStop(time,index){
+  const stop = routes[time]?.[index];
+  if(!stop) return;
+  if(!confirm(`${stop.name} 정류장을 삭제할까요?\n기존 배정 관원은 표시되지 않을 수 있습니다.`)) return;
+  routes[time].splice(index,1);
+  try{
+    await saveRoutesToDB();
+    renderAll();
+  }catch(err){
+    alert("정류장 삭제 오류: " + err.message);
+  }
+}
+
 function checkPassword(){
   const input = document.getElementById("accessPassword");
   const err = document.getElementById("lockError");
@@ -605,6 +765,20 @@ function startFirebaseSync(){
     console.error(err);
     setSyncStatus("연결 오류", false);
   });
+
+  onSnapshot(doc(db, "settings", "routes"), async snap=>{
+    if(snap.exists()){
+      routes = normalizeRoutesData(snap.data().routes);
+      renderAll();
+    }else{
+      routes = normalizeRoutesData(DEFAULT_ROUTES);
+      try{ await saveRoutesToDB(); }catch(e){ console.warn("기본 정류장 저장 실패", e); }
+      renderAll();
+    }
+  }, err=>{
+    console.error(err);
+    setSyncStatus("연결 오류", false);
+  });
 }
 
 window.checkPassword = checkPassword;
@@ -621,6 +795,11 @@ window.removeException = removeException;
 window.renderAll = renderAll;
 window.renderStudents = renderStudents;
 window.setTime = setTime;
+window.renderRouteAdmin = renderRouteAdmin;
+window.openRouteStopModal = openRouteStopModal;
+window.saveRouteStop = saveRouteStop;
+window.moveRouteStop = moveRouteStop;
+window.deleteRouteStop = deleteRouteStop;
 
 (async function init(){
   document.getElementById("viewDate").value=todayStr();
